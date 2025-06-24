@@ -16,3 +16,5 @@ Install dependencies with:
 
 ```bash
 pip install -r requirements.txt
+```
+if i do end up being smart and making an action thingy wingy i might
