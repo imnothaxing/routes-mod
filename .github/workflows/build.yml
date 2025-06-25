@@ -22,10 +22,6 @@ jobs:
           python_ver: '3.11'
           spec: 'index.py'
           requirements: 'requirements.txt'
-          options: --onedir, --windowed, --icon=fow.ico
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: routes-mod-executable
-          path: dist/
+          upload_exe_with_name: 'index'
+          options: --onedir, --windowed, --icon fow.ico
+	  
