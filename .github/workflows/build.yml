@@ -16,26 +16,11 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install .NET Desktop Runtime
-        shell: pwsh
+      - name: Install dependenciesAdd commentMore actions
         run: |
-          Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
-          ./dotnet-install.ps1 -Runtime windowsdesktop -Version 7.0.11 -InstallDir "$env:ProgramFiles\dotnet"
-
-      - name: Generate PyInstaller spec
-        run: |
-          pyi-makespec index.py --onedir --windowed --icon=fow.ico
-          echo "from PyInstaller.utils.hooks import collect_dynamic_libs" >> index.spec
-          echo "binaries = collect_dynamic_libs('pythonnet')" >> index.spec
-          (Get-Content index.spec) -replace "binaries=\[\]", "binaries=binaries" | Set-Content index.spec
-
-      - name: Build executable via PyInstaller Action
-        uses: vednig/pyinstaller-action-windows@v0.1.5
-        with:
-          path: .
-          spec: index.spec
-          requirements: requirements.txt
-          options: "--clean"
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
