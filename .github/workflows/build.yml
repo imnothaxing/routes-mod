@@ -24,4 +24,3 @@ jobs:
           requirements: 'requirements.txt'
           upload_exe_with_name: 'index'
           options: --onedir, --windowed, --icon fow.ico
-	  
