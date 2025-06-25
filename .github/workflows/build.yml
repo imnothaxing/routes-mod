@@ -1,7 +1,7 @@
-name: Build EXE with PyInstaller
+name: Build EXE with PyInstaller Action
 
 on:
-  workflow_dispatch:  # Trigger manually from GitHub UI
+  workflow_dispatch: 
 
 jobs:
   build:
@@ -22,22 +22,22 @@ jobs:
           Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
           ./dotnet-install.ps1 -Runtime windowsdesktop -Version 7.0.11 -InstallDir "$env:ProgramFiles\dotnet"
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Create PyInstaller spec file
-        run: pyi-makespec index.py --windowed --onedir --icon=fow.ico
-
-      - name: Inject pythonnet DLLs into spec
+      - name: Generate PyInstaller spec
         run: |
+          pyi-makespec index.py --onedir --windowed --icon=fow.ico
           echo "from PyInstaller.utils.hooks import collect_dynamic_libs" >> index.spec
           echo "binaries = collect_dynamic_libs('pythonnet')" >> index.spec
+          (Get-Content index.spec) -replace "binaries=\[\]", "binaries=binaries" | Set-Content index.spec
 
-      - name: Build with PyInstaller using spec
-        run: pyinstaller index.spec
+      - name: Build with PyInstaller Action
+        uses: JackMcKew/pyinstaller-action@v1
+        with:
+          spec: index.spec
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
