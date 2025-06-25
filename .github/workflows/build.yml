@@ -1,7 +1,7 @@
-name: Build EXE with PyInstaller Action
+name: Build EXE with PyInstaller
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   build:
@@ -22,11 +22,6 @@ jobs:
           Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
           ./dotnet-install.ps1 -Runtime windowsdesktop -Version 7.0.11 -InstallDir "$env:ProgramFiles\dotnet"
 
-      - name: Install Python dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install pyinstaller
-
       - name: Generate PyInstaller spec
         run: |
           pyi-makespec index.py --onedir --windowed --icon=fow.ico
@@ -34,10 +29,13 @@ jobs:
           echo "binaries = collect_dynamic_libs('pythonnet')" >> index.spec
           (Get-Content index.spec) -replace "binaries=\[\]", "binaries=binaries" | Set-Content index.spec
 
-      - name: Build with PyInstaller Action
-        uses: JackMcKew/pyinstaller-action@v1
+      - name: Build executable via PyInstaller Action
+        uses: vednig/pyinstaller-action-windows@v0.1.5
         with:
+          path: .
           spec: index.spec
+          requirements: requirements.txt
+          options: "--clean"
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
