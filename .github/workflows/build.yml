@@ -1,7 +1,7 @@
 name: Build EXE with PyInstaller
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Trigger manually from GitHub UI
 
 jobs:
   build:
@@ -16,14 +16,28 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install .NET Desktop Runtime
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://download.visualstudio.microsoft.com/download/pr/dcd19103-4d4f-4401-9df2-0d1b187b6f18/0cdb9a9b9d1b2f56001bc3d95a9a1f02/windowsdesktop-runtime-7.0.11-win-x64.exe -OutFile dotnet-runtime.exe
+          Start-Process -Wait -FilePath ./dotnet-runtime.exe -ArgumentList '/quiet','/norestart'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: Build EXE with PyInstaller
-        run: pyinstaller --onedir --windowed --icon=fow.ico index.py
+      - name: Create PyInstaller spec file
+        run: pyi-makespec index.py --windowed --onedir --icon=fow.ico
+
+      - name: Inject pythonnet DLLs into spec
+        run: |
+          echo "from PyInstaller.utils.hooks import collect_dynamic_libs" >> index.spec
+          echo "binaries = collect_dynamic_libs('pythonnet')" >> index.spec
+
+      - name: Build with PyInstaller using spec
+        run: pyinstaller index.spec
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
