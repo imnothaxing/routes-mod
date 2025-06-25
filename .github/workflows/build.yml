@@ -19,8 +19,8 @@ jobs:
       - name: Install .NET Desktop Runtime
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri https://download.visualstudio.microsoft.com/download/pr/dcd19103-4d4f-4401-9df2-0d1b187b6f18/0cdb9a9b9d1b2f56001bc3d95a9a1f02/windowsdesktop-runtime-7.0.11-win-x64.exe -OutFile dotnet-runtime.exe
-          Start-Process -Wait -FilePath ./dotnet-runtime.exe -ArgumentList '/quiet','/norestart'
+          Invoke-WebRequest -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1
+          ./dotnet-install.ps1 -Runtime windowsdesktop -Version 7.0.11 -InstallDir "$env:ProgramFiles\dotnet"
 
       - name: Install dependencies
         run: |
