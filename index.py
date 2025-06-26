@@ -1,4 +1,3 @@
-import webview
 import requests
 import re
 import win32event
@@ -10,6 +9,8 @@ import threading
 
 # Use Edge Chromium as the backend for pywebview
 os.environ['WEBVIEW_GUI'] = 'edgechromium'
+
+import webview
 
 windowtitle = 'Routes Mod'
 items = []
