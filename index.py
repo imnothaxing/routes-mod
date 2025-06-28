@@ -6,10 +6,6 @@ import sys
 import os
 from flask import Flask
 import threading
-
-# Use Edge Chromium as the backend for pywebview
-os.environ['WEBVIEW_GUI'] = 'edgechromium'
-
 import webview
 
 windowtitle = 'Routes Mod'
@@ -337,4 +333,4 @@ def on_loaded():
     if overlay_mode:
         webview.windows[0].move(overlay_x, overlay_y)
 
-webview.start(on_loaded)
+webview.start(on_loaded, gui='edgechromium')
