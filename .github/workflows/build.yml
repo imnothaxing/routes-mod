@@ -1,5 +1,4 @@
 name: Build EXE with PyInstaller
-Add commentMore actions
 
 on:
   workflow_dispatch:
