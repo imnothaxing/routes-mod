@@ -23,4 +23,4 @@ jobs:
           spec: 'index.py'
           requirements: 'requirements.txt'
           upload_exe_with_name: 'index'
-          options: --onedir, --windowed, --icon fow.ico
+          options: --onefile, --windowed, --icon fow.ico
