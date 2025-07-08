@@ -12,6 +12,7 @@ windowtitle = 'Routes Mod'
 items = []
 room = None
 window = None
+base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 
 # --- Globals for cycling through videos ---
 filtered_segments = []
@@ -152,7 +153,6 @@ def reload_video():
     current_index = 0
 
     try:
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         text_path = os.path.join(base_path, 'text.txt')
         if not os.path.exists(text_path):
             raise FileNotFoundError(f"text.txt not found in: {base_path}")
@@ -275,8 +275,6 @@ threading.Thread(target=run_server, daemon=True).start()
 
 # --- Create pywebview window with overlay behavior ---
 api = Api()
-
-base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 text_path = os.path.join(base_path, 'settings.txt')
 
 screen_width = 1920
