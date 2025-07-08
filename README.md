@@ -17,9 +17,8 @@ Install dependencies with:
 ```bash
 pip install -r requirements.txt
 ```
-if i do end up being smart and making an action thingy wingy i might
 
 command to compile
 ```bash
-pyinstaller --onedir --windowed --icon=fow.ico index.py
+pyinstaller --onefile --windowed --icon=fow.ico index.py
 ```
