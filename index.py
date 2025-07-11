@@ -125,20 +125,23 @@ class Api:
     def scaleDown(self): self.adjust_scale(-0.1)
     def scaleUp(self): self.adjust_scale(0.1)
 
+    def redraw(self, scale):
+        overlay_width = int(base_width * scale)
+        overlay_height = int(base_height * scale)
+        overlay_x = screen_width - overlay_width
+        overlay_y = 0
+        window.resize(overlay_width, overlay_height)
+        window.move(overlay_x, overlay_y)
+        window.evaluate_js(f"updateScale({scale})")
+
     def adjust_scale(self, delta):
-        global scale, overlay_width, overlay_height, overlay_x, overlay_y
+        global scale
         index = allowed_scales.index(scale) if scale in allowed_scales else 9
         new_index = max(0, min(len(allowed_scales) - 1, index + int(delta * 10)))
         new_scale = allowed_scales[new_index]
         if new_scale != scale:
             scale = new_scale
-            overlay_width = int(base_width * scale)
-            overlay_height = int(base_height * scale)
-            overlay_x = screen_width - overlay_width
-            overlay_y = 0
-            window.resize(overlay_width, overlay_height)
-            window.move(overlay_x, overlay_y)
-            window.evaluate_js(f"updateScale({scale})")
+            self.redraw(scale)
 
 app = Flask(__name__)
 
@@ -160,10 +163,19 @@ base_width = 640
 base_height = 360
 allowed_scales = [round(x * 0.1, 1) for x in range(1, 21)]
 
+def get_monitor():
+    monitors = screeninfo.get_monitors()
+    if len(monitors) == 1:
+        return monitors[0]
+    for monitor in monitors:
+        if monitor.is_primary:
+            return monitor
+    return monitors[0]
+
 
 def get_screen_size():
     try:
-        monitor = screeninfo.get_monitors()[0]
+        monitor = get_monitor()
         return monitor.width, monitor.height
     except:
         return 1920, 1080
@@ -188,21 +200,18 @@ else:
                 except ValueError:
                     scale = 1.0
 
-overlay_width = int(base_width * scale)
-overlay_height = int(base_height * scale)
-overlay_x = screen_width - overlay_width
-overlay_y = 0
-
 window = webview.create_window(
     windowtitle, html=html_template, js_api=api,
-    width=overlay_width, height=overlay_height,
-    resizable=False, frameless=True, on_top=True
+    height=0, width=0,
+    resizable=False, frameless=True, on_top=False
 )
 
 def on_loaded():
     reload_video()
     if overlay_mode:
-        window.move(overlay_x, overlay_y)
-        window.evaluate_js(f"updateScale({scale})")
+        window.on_top = True
+        api.redraw(1)
+
+
 
 webview.start(on_loaded, gui="edgechromium")
