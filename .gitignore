@@ -5,3 +5,5 @@ dist/
 .idea/
 __pycache__/
 *.pyc
+settings.txt
+text.txt

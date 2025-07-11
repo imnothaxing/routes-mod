@@ -7,18 +7,16 @@ import os
 from flask import Flask
 import threading
 import webview
+import screeninfo
 
-windowtitle = 'Routes Mod'
+windowtitle = "Routes Mod"
 items = []
 room = None
 window = None
 base_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-
-# --- Globals for cycling through videos ---
 filtered_segments = []
 current_index = 0
 
-# --- Mutex check to ensure single instance ---
 mutex = win32event.CreateMutex(None, False, "routes_mod")
 last_error = win32api.GetLastError()
 ERROR_ALREADY_EXISTS = 183
@@ -30,305 +28,181 @@ if last_error == ERROR_ALREADY_EXISTS:
         print("Could not contact existing instance", e)
     sys.exit(0)
 
-# --- YouTube ID extractor function ---
 def extract_youtube_id(_url):
     pattern = r"(?:https?://)?(?:www\.)?(?:youtube\.com/watch\?v=|youtu\.be/)([\w-]{11})"
     match = re.search(pattern, _url)
-    if match:
-        return match.group(1)
-    return None
+    return match.group(1) if match else None
 
-# --- HTML template for embedded video player UI ---
 html_template = """
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Routes Mod Video Player</title>
-<style>
-  body { margin: 0; background: #000; }
-  iframe {
-    display: block;
-    width: 100vw;
-    height: 100vh;
-    border: none;
-  }
-  #controls {
-    position: fixed;
-    top: 10px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    z-index: 9999;
-    user-select: none;
-  }
-  button {
-    margin: 0 10px;
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-    opacity: 0.8;
-  }
-  button:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-  #backBtn { background: #555; color: white; }
-  #nextBtn { background: #ff0000; color: white; }
-  #closeBtn {
-    background: #222;
-    color: white;
-    position: absolute;
-    top: -10px;
-    right: 10px;
-  }
-  #counter {
-    color: white;
-    font-size: 16px;
-    margin-left: 20px;
-  }
-</style>
+    <meta charset=\"UTF-8\">
+    <title>Routes Mod</title>
+    <style>
+        html, body { margin: 0; padding: 0; background-color: black; overflow: hidden; width: 100%; height: 100%; font-family: Arial, sans-serif; }
+        #container { position: relative; width: 100%; height: 100%; }
+        iframe { width: 100%; height: 100%; border: none; }
+        #controls { position: absolute; bottom: 10px; left: 10px; display: flex; gap: 10px; z-index: 999; }
+        button { background-color: rgba(255, 255, 255, 0.2); color: white; border: none; padding: 5px 10px; font-size: 14px; cursor: pointer; border-radius: 5px; }
+        button:hover { background-color: rgba(255, 255, 255, 0.4); }
+        #scaleDisplay { position: absolute; top: 10px; right: 10px; color: white; font-size: 14px; background: rgba(0, 0, 0, 0.4); padding: 5px 10px; border-radius: 5px; }
+        #noVideos { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: red; font-size: 20px; display: none; text-align: center; max-width: 90%; word-wrap: break-word; }
+    </style>
 </head>
 <body>
-
-<div id="controls">
-  <button id="closeBtn">X</button>
-  <button id="backBtn" disabled>Back</button>
-  <button id="nextBtn" disabled>Next</button>
-  <span id="counter">0 / 0</span>
-</div>
-
-<iframe id="videoFrame" src=""></iframe>
-<div id="noVideos" style="color: white; text-align: center; font-size: 24px; margin-top: 20px; display: none;">
-  No routes with your items
-</div>
-
-<script>
-  const backBtn = document.getElementById('backBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const closeBtn = document.getElementById('closeBtn');
-  const counter = document.getElementById('counter');
-  const iframe = document.getElementById('videoFrame');
-
-  backBtn.onclick = () => {
-    window.pywebview.api.back();
-  };
-  nextBtn.onclick = () => {
-    window.pywebview.api.next();
-  };
-  closeBtn.onclick = () => {
-    window.pywebview.api.close();
-  };
-
-  window.updateCounter = (current, total) => {
-    counter.textContent = current + " / " + total;
-  };
-  window.updateButtons = (current, total) => {
-    backBtn.disabled = current <= 1;
-    nextBtn.disabled = current >= total;
-  };
-  window.loadVideo = (url) => {
-    iframe.src = url;
-  };
-  window.showNoVideos = (show) => {
-    document.getElementById('noVideos').style.display = show ? 'block' : 'none';
-    document.getElementById('videoFrame').style.display = show ? 'none' : 'block';
-    document.getElementById('controls').style.display = show ? 'none' : 'block';
-  };
-</script>
-
+    <div id=\"container\">
+        <iframe id=\"videoFrame\" allow=\"autoplay; encrypted-media\" allowfullscreen></iframe>
+        <div id=\"controls\">
+            <button onclick=\"window.pywebview.api.back()\">\u23ee Back</button>
+            <button onclick=\"window.pywebview.api.next()\">\u23ed Next</button>
+            <button onclick=\"window.pywebview.api.scaleDown()\">\u2796 Scale</button>
+            <button onclick=\"window.pywebview.api.scaleUp()\">\u2795 Scale</button>
+            <button onclick=\"window.pywebview.api.close()\">\u274c Close</button>
+        </div>
+        <div id=\"scaleDisplay\">Scale: 1.0x</div>
+        <div id=\"noVideos\">No routes available</div>
+    </div>
+    <script>
+        function loadVideo(url) { document.getElementById('videoFrame').src = url; }
+        function updateCounter(index, total) { document.title = `Routes Mod (${index}/${total})`; }
+        function updateScale(scale) { document.getElementById('scaleDisplay').textContent = `Scale: ${scale.toFixed(1)}x`; }
+        function showNoVideos(show) { document.getElementById('noVideos').style.display = show ? 'block' : 'none'; }
+    </script>
 </body>
 </html>
 """
 
-# --- Reload video list and update UI ---
 def reload_video():
     global room, items, window, filtered_segments, current_index
     items.clear()
     filtered_segments.clear()
     current_index = 0
-
     try:
-        text_path = os.path.join(base_path, 'text.txt')
-        if not os.path.exists(text_path):
-            raise FileNotFoundError(f"text.txt not found in: {base_path}")
-
-        with open(text_path, 'r') as file:
-            for i, line in enumerate(file):
-                line = line.strip()
-                if i == 0:
-                    room = line
-                else:
-                    items.append(line)
-
-        if not room:
-            raise ValueError("Room name missing in text.txt")
-
-        response = requests.get('http://159.65.35.198/' + room)
-
-        if response.status_code == 406:
-            raise Exception("Server returned 406: Invalid request or unsupported room")
-
-        if response.status_code != 200:
-            raise Exception(f"Unexpected API error: {response.status_code}")
-
-        data = response.json().get('data', {}).get('segments', [])
-
+        text_path = os.path.join(base_path, "text.txt")
+        if not os.path.exists(text_path): raise FileNotFoundError("text.txt missing")
+        with open(text_path, "r") as f:
+            lines = [line.strip() for line in f if line.strip()]
+            room, *items[:] = lines
+        response = requests.get("http://159.65.35.198/" + room)
+        if response.status_code != 200: raise Exception(f"Server error: {response.status_code}")
+        data = response.json().get("data", {}).get("segments", [])
         for segment in data:
-            required = segment.get('required_items', [])
-            if isinstance(required, str):
-                required = [required]
-            if "nothing" in required or all(req_item in items for req_item in required):
+            required = segment.get("required_items", [])
+            if isinstance(required, str): required = [required]
+            if "nothing" in required or all(i in items for i in required):
                 filtered_segments.append(segment)
-
         if filtered_segments:
-            video_url = filtered_segments[0]['video']
-            video_id = extract_youtube_id(video_url)
-            if video_id and window:
-                new_url = 'https://www.youtube.com/embed/' + video_id + '?enablejsapi=1'
-                window.evaluate_js(f"""
-                    document.getElementById('noVideos').textContent = 'No routes with your items';
-                    loadVideo('{new_url}');
-                    updateCounter(1, {len(filtered_segments)});
-                    updateButtons(1, {len(filtered_segments)});
-                    showNoVideos(false);
-                """)
-                return new_url
+            play_segment(0)
         else:
-            if window:
-                window.evaluate_js("""
-                    document.getElementById('noVideos').textContent = 'No routes with your items';
-                    showNoVideos(true);
-                """)
-
+            window.evaluate_js("showNoVideos(true);")
     except Exception as e:
-        print("Failed to load video info:", e)
+        print("Error loading video:", e)
         if window:
-            error_msg = str(e).replace("'", "\\'")
-            window.evaluate_js(f"""
-                document.getElementById('noVideos').textContent = 'Error: {error_msg}';
-                showNoVideos(true);
-            """)
+            window.evaluate_js(f"document.getElementById('noVideos').textContent = 'Error: {str(e)}'; showNoVideos(true);")
 
-    return ''
+def play_segment(index):
+    global current_index
+    current_index = index
+    video_url = filtered_segments[index]["video"]
+    video_id = extract_youtube_id(video_url)
+    if video_id:
+        new_url = f"https://www.youtube.com/embed/{video_id}?enablejsapi=1"
+        window.evaluate_js(f"loadVideo('{new_url}'); updateCounter({index+1}, {len(filtered_segments)}); showNoVideos(false);")
 
-# --- Move to next video ---
 def cycle_video_next():
-    global current_index, filtered_segments, window
-    if not filtered_segments:
-        return
-    current_index = min(current_index + 1, len(filtered_segments) - 1)
-    video_url = filtered_segments[current_index]['video']
-    video_id = extract_youtube_id(video_url)
-    if video_id:
-        new_url = 'https://www.youtube.com/embed/' + video_id + '?enablejsapi=1'
-        if window:
-            window.evaluate_js(f"""
-                loadVideo('{new_url}');
-                updateCounter({current_index+1}, {len(filtered_segments)});
-                updateButtons({current_index+1}, {len(filtered_segments)});
-            """)
+    if filtered_segments and current_index + 1 < len(filtered_segments):
+        play_segment(current_index + 1)
 
-# --- Move to previous video ---
 def cycle_video_back():
-    global current_index, filtered_segments, window
-    if not filtered_segments:
-        return
-    current_index = max(current_index - 1, 0)
-    video_url = filtered_segments[current_index]['video']
-    video_id = extract_youtube_id(video_url)
-    if video_id:
-        new_url = 'https://www.youtube.com/embed/' + video_id + '?enablejsapi=1'
-        if window:
-            window.evaluate_js(f"""
-                loadVideo('{new_url}');
-                updateCounter({current_index+1}, {len(filtered_segments)});
-                updateButtons({current_index+1}, {len(filtered_segments)});
-            """)
+    if filtered_segments and current_index > 0:
+        play_segment(current_index - 1)
 
-# --- Python API exposed to JS ---
 class Api:
-    def next(self):
-        cycle_video_next()
-    def back(self):
-        cycle_video_back()
-    def close(self):
-        webview.windows[0].destroy()
+    def next(self): cycle_video_next()
+    def back(self): cycle_video_back()
+    def close(self): webview.windows[0].destroy()
+    def scaleDown(self): self.adjust_scale(-0.1)
+    def scaleUp(self): self.adjust_scale(0.1)
 
-# --- Flask API to handle reload requests ---
+    def adjust_scale(self, delta):
+        global scale, overlay_width, overlay_height, overlay_x, overlay_y
+        index = allowed_scales.index(scale) if scale in allowed_scales else 9
+        new_index = max(0, min(len(allowed_scales) - 1, index + int(delta * 10)))
+        new_scale = allowed_scales[new_index]
+        if new_scale != scale:
+            scale = new_scale
+            overlay_width = int(base_width * scale)
+            overlay_height = int(base_height * scale)
+            overlay_x = screen_width - overlay_width
+            overlay_y = 0
+            window.resize(overlay_width, overlay_height)
+            window.move(overlay_x, overlay_y)
+            window.evaluate_js(f"updateScale({scale})")
+
 app = Flask(__name__)
 
-@app.route('/reload', methods=['POST'])
+@app.route("/reload", methods=["POST"])
 def reload_window():
     reload_video()
-    return 'OK'
+    return "OK"
 
-# --- Run Flask server in a separate thread ---
 def run_server():
     app.run(port=8123)
 
 threading.Thread(target=run_server, daemon=True).start()
 
-# --- Create pywebview window with overlay behavior ---
 api = Api()
-text_path = os.path.join(base_path, 'settings.txt')
+text_path = os.path.join(base_path, "settings.txt")
+scale = 1.0
+overlay_mode = True
+base_width = 640
+base_height = 360
+allowed_scales = [round(x * 0.1, 1) for x in range(1, 21)]
 
-screen_width = 1920
-overlay_width = 640
-overlay_height = 360
+
+def get_screen_size():
+    try:
+        monitor = screeninfo.get_monitors()[0]
+        return monitor.width, monitor.height
+    except:
+        return 1920, 1080
+
+screen_width, screen_height = get_screen_size()
+
+def get_nearest_scale(input_scale):
+    return min(allowed_scales, key=lambda x: abs(x - input_scale))
+
+if not os.path.exists(text_path):
+    with open(text_path, "w") as f:
+        f.write("overlay_mode: true\nscale: 1.0")
+else:
+    with open(text_path, "r") as file:
+        for line in file:
+            line = line.strip()
+            if line.startswith("overlay_mode:"):
+                overlay_mode = line.split(":", 1)[1].strip().lower() == "true"
+            elif line.startswith("scale:"):
+                try:
+                    scale = get_nearest_scale(float(line.split(":", 1)[1].strip()))
+                except ValueError:
+                    scale = 1.0
+
+overlay_width = int(base_width * scale)
+overlay_height = int(base_height * scale)
 overlay_x = screen_width - overlay_width
 overlay_y = 0
-overlay_mode = True
 
+window = webview.create_window(
+    windowtitle, html=html_template, js_api=api,
+    width=overlay_width, height=overlay_height,
+    resizable=False, frameless=True, on_top=True
+)
 
-# --- Get settings from settings.txt or create settings.txt if it does not exist ---
-if not os.path.exists(text_path):
-    with open(text_path, 'w') as f:
-        f.write('overlay_mode: true \noverlay_width: 640 \noverlay_height: 480 \nscreen_width: 1920')
-else:
-    with open(text_path, 'r') as file:
-        for i, line in enumerate(file):
-            line = line.strip()
-            if i == 0 & line.startswith('overlay_mode:'):
-                _overlay_mode = line.replace('overlay_mode: ', '')
-                if _overlay_mode == 'false': overlay_mode = False
-            if i == 1 & line.startswith('overlay_width:') & overlay_mode == True:
-                _overlay_width = line.replace('overlay_width: ', '')
-                overlay_width = int(_overlay_width)
-            if i == 2 & line.startswith('overlay_height:') & overlay_mode == True:
-                _overlay_height = line.replace('overlay_height: ', '')
-                overlay_height = int(_overlay_height)
-            if i== 3 & line.startswith('screen_width:') & overlay_mode == True:
-                _screen_width = line.replace('screen_width: ', '')
-                screen_width = int(_screen_width)
-
-# --- Draw the webview either as overlay or normal ---
-if overlay_mode:
-    window = webview.create_window(
-        windowtitle,
-        html=html_template,
-        js_api=api,
-        width=overlay_width,
-        height=overlay_height,
-        resizable=False,
-        frameless=True,
-        on_top=True
-    )
-else:
-    window = webview.create_window(windowtitle,
-        html=html_template,
-        js_api=api)
-
-
-
-# --- Load initial video after window is ready ---
 def on_loaded():
     reload_video()
     if overlay_mode:
-        webview.windows[0].move(overlay_x, overlay_y)
+        window.move(overlay_x, overlay_y)
+        window.evaluate_js(f"updateScale({scale})")
 
-webview.start(on_loaded, gui='edgechromium')
+webview.start(on_loaded, gui="edgechromium")
