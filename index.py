@@ -71,7 +71,7 @@ html_template = """
         </div>
         <div id=\"scaleDisplay\">Scale: 1.0x</div>
         <div id=\"counter\">0 / 0</div>
-        <div id=\"noVideos\">No routes available</div>
+        <div id=\"noVideos\">Error: No routes available with your item</div>
     </div>
     <script>
         function loadVideo(url) {
@@ -83,7 +83,7 @@ html_template = """
             const backBtn = document.getElementById('backBtn');
             const nextBtn = document.getElementById('nextBtn');
             nextBtn.disabled = index == total
-            backBtn.disabled = index == 1
+            backBtn.disabled = index == 1 ||index == 0
         }
         
         function updateScale(scale) {
@@ -92,6 +92,7 @@ html_template = """
         
         function showNoVideos(show) {
             document.getElementById('noVideos').style.display = show ? 'block' : 'none';
+            document.getElementById('player').style.display = show ? 'none' : 'block';
         }
         
         function noScale() {
@@ -147,7 +148,7 @@ def reload_video():
 
         response = requests.get(f"http://159.65.35.198/{room}")
         if response.status_code != 200:
-            raise Exception(f"Server error: {response.status_code}")
+            raise Exception(f"{response.json().get("data", {}).get("error", [])}")
 
         data = response.json().get("data", {}).get("segments", [])
         for segment in data:
@@ -160,13 +161,13 @@ def reload_video():
         if filtered_segments:
             play_segment(0)
         else:
-            window.evaluate_js("showNoVideos(true);")
+            raise Exception(f"No routes available with your item")
+
 
     except Exception as e:
-        print("Error loading video:", e)
         if window:
             error_message = "Error: " + str(e).replace("'", "").replace('"', "")
-            window.evaluate_js(f"document.getElementById('noVideos').textContent = '{error_message}'; showNoVideos(true);")
+            window.evaluate_js(f"document.getElementById('noVideos').textContent = '{error_message}'; showNoVideos(true); updateCounter(0, 0); loadVideo('https://www.youtube.com')")
 
 def play_segment(index):
     global current_index
