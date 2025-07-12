@@ -65,8 +65,8 @@ html_template = """
         <div id=\"controls\">
             <button id="backBtn" onclick=\"window.pywebview.api.back()\">⏮ Back</button>
             <button id="nextBtn" onclick=\"window.pywebview.api.next()\">⏭ Next</button>
-            <button onclick=\"window.pywebview.api.scaleDown()\">➖ Scale</button>
-            <button onclick=\"window.pywebview.api.scaleUp()\">➕ Scale</button>
+            <button id="downscale" onclick=\"window.pywebview.api.scaleDown()\">➖ Scale</button>
+            <button id="upscale" onclick=\"window.pywebview.api.scaleUp()\">➕ Scale</button>
             <button onclick=\"window.pywebview.api.close()\">❌ Close</button>
         </div>
         <div id=\"scaleDisplay\">Scale: 1.0x</div>
@@ -85,12 +85,20 @@ html_template = """
             nextBtn.disabled = index == total
             backBtn.disabled = index == 1
         }
+        
         function updateScale(scale) {
             document.getElementById('scaleDisplay').textContent = `Scale: ${scale.toFixed(1)}x`;
         }
+        
         function showNoVideos(show) {
             document.getElementById('noVideos').style.display = show ? 'block' : 'none';
         }
+        
+        function noScale() {
+            document.getElementById('downscale').disabled = true
+            document.getElementById('upscale').disabled = true
+        }
+        
     </script>
 </body>
 </html>
@@ -241,10 +249,13 @@ else:
 
 screen_width, screen_height = get_screen_size()
 
-window = webview.create_window(
-    windowtitle, html=html_template, js_api=api,
-    height=0, width=0, resizable=False, frameless=True, on_top=False
-)
+if overlay_mode:
+    window = webview.create_window(
+        windowtitle, html=html_template, js_api=api,
+        height=0, width=0, resizable=False, frameless=True, on_top=False
+    )
+else:
+    window = webview.create_window(windowtitle, html=html_template, js_api=api)
 
 def on_loaded():
     time.sleep(0.5)
@@ -252,5 +263,7 @@ def on_loaded():
     if overlay_mode:
         window.on_top = True
         api.redraw(scale)
+    else:
+        window.evaluate_js("noScale()")
 
 webview.start(on_loaded, gui="edgechromium")
