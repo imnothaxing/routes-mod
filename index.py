@@ -44,33 +44,75 @@ html_template = """
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset=\"UTF-8\">
+    <meta charset="UTF-8">
     <title>Routes Mod</title>
     <style>
-        html, body { margin: 0; padding: 0; background: black; width: 100%; height: 100%; font-family: Arial; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: black;
+            width: 100%;
+            height: 100%;
+            font-family: Arial;
+            overflow: hidden; /* <-- This removes scrollbars */
+        }
         #container { position: relative; width: 100%; height: 100%; }
         iframe { width: 100%; height: 100%; border: none; }
-        #controls { position: absolute; bottom: 10px; left: 10px; display: flex; gap: 10px; z-index: 999; }
-        button { background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
-        button:hover { background: rgba(255,255,255,0.4); }
-        #scaleDisplay, #counter { position: absolute; top: 10px; right: 10px; color: white; font-size: 14px; background: rgba(0,0,0,0.4); padding: 5px 10px; border-radius: 5px; }
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 999;
+        }
+        button {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: rgba(255,255,255,0.4);
+        }
+        #scaleDisplay, #counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.4);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
         #counter { top: 40px; }
-        #noVideos { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: red; font-size: 20px; display: none; text-align: center; }
+        #noVideos {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: red;
+            font-size: 20px;
+            display: none;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <div id=\"container\">
-        <iframe id=\"player\" allow=\"autoplay; encrypted-media\" allowfullscreen></iframe>
-        <div id=\"controls\">
-            <button onclick=\"window.pywebview.api.back()\">⏮ Back</button>
-            <button onclick=\"window.pywebview.api.next()\">⏭ Next</button>
-            <button onclick=\"window.pywebview.api.scaleDown()\">➖ Scale</button>
-            <button onclick=\"window.pywebview.api.scaleUp()\">➕ Scale</button>
-            <button onclick=\"window.pywebview.api.close()\">❌ Close</button>
+    <div id="container">
+        <iframe id="player" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div id="controls">
+            <button onclick="window.pywebview.api.back()">⏮ Back</button>
+            <button onclick="window.pywebview.api.next()">⏭ Next</button>
+            <button onclick="window.pywebview.api.scaleDown()">➖ Scale</button>
+            <button onclick="window.pywebview.api.scaleUp()">➕ Scale</button>
+            <button onclick="window.pywebview.api.close()">❌ Close</button>
         </div>
-        <div id=\"scaleDisplay\">Scale: 1.0x</div>
-        <div id=\"counter\">0 / 0</div>
-        <div id=\"noVideos\">No routes available</div>
+        <div id="scaleDisplay">Scale: 1.0x</div>
+        <div id="counter">0 / 0</div>
+        <div id="noVideos">No routes available</div>
     </div>
     <script>
         function loadVideo(url) {
@@ -89,6 +131,7 @@ html_template = """
     </script>
 </body>
 </html>
+
 """
 
 # ---------------------- Helper Functions ----------------------
