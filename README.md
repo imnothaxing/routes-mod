@@ -2,7 +2,7 @@
 
 Yes, I wrote this using ChatGPT 😎
 
-A desktop overlay app built with Flask and PyWebView. Designed to help with managing route data in an intuitive and minimal UI. Includes an EXE build option using PyInstaller. (LOL what the fuck)
+A desktop overlay app built with Flask and PyWebView. Designed to help with managing route data in an intuitive and minimal UI. (LOL what the fuck)
 
 ---
 
@@ -18,7 +18,5 @@ Install dependencies with:
 pip install -r requirements.txt
 ```
 
-command to compile
-```bash
-pyinstaller --onefile --windowed --icon=fow.ico index.py
-```
+update: build now uses nuitka
+run build.bat to build
