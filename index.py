@@ -47,12 +47,13 @@ html_template = """
     <meta charset=\"UTF-8\">
     <title>Routes Mod</title>
     <style>
-        html, body { margin: 0; padding: 0; background: black; width: 100%; height: 100%; font-family: Arial; }
+        html, body { margin: 0; padding: 0; background: black; width: 100%; height: 100%; overflow: hidden; font-family: Arial; }
         #container { position: relative; width: 100%; height: 100%; }
         iframe { width: 100%; height: 100%; border: none; }
-        #controls { position: absolute; bottom: 10px; left: 10px; display: flex; gap: 10px; z-index: 999; }
-        button { background: rgba(255,255,255,0.2); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
-        button:hover { background: rgba(255,255,255,0.4); }
+        #controls { position: absolute; bottom: 50px; left: 10px; display: flex; gap: 10px; z-index: 999; }
+        button { background: rgba(255,255,255,0.3); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
+        button:hover { background: rgba(255,255,255,0.8); }
+        button:disabled { background: rgba(255,255,255,0.1); color: #888; cursor: default;}
         #scaleDisplay, #counter { position: absolute; top: 10px; right: 10px; color: white; font-size: 14px; background: rgba(0,0,0,0.4); padding: 5px 10px; border-radius: 5px; }
         #counter { top: 40px; }
         #noVideos { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: red; font-size: 20px; display: none; text-align: center; }
@@ -62,8 +63,8 @@ html_template = """
     <div id=\"container\">
         <iframe id=\"player\" allow=\"autoplay; encrypted-media\" allowfullscreen></iframe>
         <div id=\"controls\">
-            <button onclick=\"window.pywebview.api.back()\">⏮ Back</button>
-            <button onclick=\"window.pywebview.api.next()\">⏭ Next</button>
+            <button id="backBtn" onclick=\"window.pywebview.api.back()\">⏮ Back</button>
+            <button id="nextBtn" onclick=\"window.pywebview.api.next()\">⏭ Next</button>
             <button onclick=\"window.pywebview.api.scaleDown()\">➖ Scale</button>
             <button onclick=\"window.pywebview.api.scaleUp()\">➕ Scale</button>
             <button onclick=\"window.pywebview.api.close()\">❌ Close</button>
@@ -79,6 +80,10 @@ html_template = """
         function updateCounter(index, total) {
             document.getElementById('counter').textContent = `${index} / ${total}`;
             document.title = `Routes Mod (${index}/${total})`;
+            const backBtn = document.getElementById('backBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.disabled = index == total
+            backBtn.disabled = index == 1
         }
         function updateScale(scale) {
             document.getElementById('scaleDisplay').textContent = `Scale: ${scale.toFixed(1)}x`;
