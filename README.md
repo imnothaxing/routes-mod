@@ -20,3 +20,5 @@ pip install -r requirements.txt
 
 update: build now uses nuitka
 run build.bat to build
+
+Actions build is made using pyinstaller(release is obv nuitka). 
