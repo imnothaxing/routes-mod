@@ -140,7 +140,7 @@ def reload_video():
     try:
         path = os.path.join(base_path, "text.txt")
         if not os.path.exists(path):
-            raise FileNotFoundError("text.txt missing")
+            raise Exception(f"text.txt missing")
 
         with open(path, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
@@ -148,7 +148,7 @@ def reload_video():
 
         response = requests.get(f"http://159.65.35.198/{room}")
         if response.status_code != 200:
-            raise Exception(f"{response.json().get("data", {}).get("error", [])}")
+            raise Exception(f"{response.json().get("data", {}).get("error", "something went wrong")}")
 
         data = response.json().get("data", {}).get("segments", [])
         for segment in data:
