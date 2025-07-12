@@ -148,7 +148,7 @@ def reload_video():
 
         response = requests.get(f"http://159.65.35.198/{room}")
         if response.status_code != 200:
-            raise Exception(f"{response.json().get("data", {}).get("error", "something went wrong")}")
+            raise Exception(f"{response.json().get('data', {}).get('error', '')}")
 
         data = response.json().get("data", {}).get("segments", [])
         for segment in data:
