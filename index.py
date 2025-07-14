@@ -9,6 +9,7 @@ import win32event
 import screeninfo
 import webview
 from flask import Flask
+import socket
 
 # ---------------------- Constants & Globals ----------------------
 
@@ -138,13 +139,15 @@ def reload_video():
     current_index = 0
 
     try:
-        path = os.path.join(base_path, "text.txt")
-        if not os.path.exists(path):
-            raise Exception(f"text.txt missing")
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect(('localhost', 8080))
 
-        with open(path, "r") as f:
-            lines = [line.strip() for line in f if line.strip()]
-            room, *items[:] = lines
+        message = ""
+        client_socket.sendall(message.encode('utf-8'))
+        data_recieved = client_socket.recv(1024)
+        data = data_recieved.decode('utf-8').strip().splitlines()
+        client_socket.close()
+        room, *items[:] = data
 
         response = requests.get(f"http://159.65.35.198/{room}")
         if response.status_code != 200:
