@@ -211,6 +211,22 @@ def run_flask():
 
 threading.Thread(target=run_flask, daemon=True).start()
 
+
+def wait_for_flask(url="http://127.0.0.1:8123", timeout=5):
+    start = time.time()
+    while True:
+        try:
+            response = requests.get(url)
+            if response.status_code == 200:
+                break
+        except requests.exceptions.ConnectionError:
+            pass
+        time.sleep(0.1)
+        if time.time() - start > timeout:
+            print("Warning: Flask server didn't start in time.")
+            break
+
+
 # ---------------------- PyWebView API ----------------------
 
 class Api:
@@ -259,7 +275,7 @@ else:
                     scale = 1.0
 
 screen_width, screen_height = get_screen_size()
-time.sleep(0.2)
+wait_for_flask()
 if overlay_mode:
     window = webview.create_window(
         windowtitle,
