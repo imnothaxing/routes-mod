@@ -29,8 +29,8 @@ Python component of Routes Mod Overlay. Works with CTJS to display route videos 
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/routes-mod-overlay.git
-cd routes-mod-overlay
+git clone https://github.com/imnothaxing/routes-mod.git
+cd routes-mod
 pip install -r requirements.txt
 ```
 
