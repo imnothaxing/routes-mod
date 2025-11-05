@@ -8,7 +8,7 @@ import win32api
 import win32event
 import screeninfo
 import webview
-from flask import Flask
+from flask import Flask, request, Response
 import socket
 
 # ---------------------- Constants & Globals ----------------------
@@ -34,6 +34,7 @@ base_height = 360
 mutex = win32event.CreateMutex(None, False, "routes_mod")
 if win32api.GetLastError() == 183:
     try:
+        print('here')
         requests.post("http://localhost:8123/reload")
     except Exception as e:
         print("Could not contact existing instance", e)
@@ -45,7 +46,7 @@ html_template = """
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset=\"UTF-8\">
+    <meta charset="UTF-8">
     <title>Routes Mod</title>
     <style>
         html, body { margin: 0; padding: 0; background: black; width: 100%; height: 100%; overflow: hidden; font-family: Arial; }
@@ -61,46 +62,44 @@ html_template = """
     </style>
 </head>
 <body>
-    <div id=\"container\">
-        <iframe id=\"player\" allow=\"autoplay; encrypted-media\" allowfullscreen></iframe>
-        <div id=\"controls\">
-            <button id="backBtn" onclick=\"window.pywebview.api.back()\">⏮ Back</button>
-            <button id="nextBtn" onclick=\"window.pywebview.api.next()\">⏭ Next</button>
-            <button id="downscale" onclick=\"window.pywebview.api.scaleDown()\">➖ Scale</button>
-            <button id="upscale" onclick=\"window.pywebview.api.scaleUp()\">➕ Scale</button>
-            <button onclick=\"window.pywebview.api.close()\">❌ Close</button>
+    <div id="container">
+        <iframe id="player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen>
+        </iframe>
+        <div id="controls">
+            <button id="backBtn" onclick="window.pywebview.api.back()">⏮ Back</button>
+            <button id="nextBtn" onclick="window.pywebview.api.next()">⏭ Next</button>
+            <button id="downscale" onclick="window.pywebview.api.scaleDown()">➖ Scale</button>
+            <button id="upscale" onclick="window.pywebview.api.scaleUp()">➕ Scale</button>
+            <button onclick="window.pywebview.api.close()">❌ Close</button>
         </div>
-        <div id=\"scaleDisplay\">Scale: 1.0x</div>
-        <div id=\"counter\">0 / 0</div>
-        <div id=\"noVideos\">Error: No routes available with your item</div>
+        <div id="scaleDisplay">Scale: 1.0x</div>
+        <div id="counter">0 / 0</div>
+        <div id="noVideos">Error: No routes available with your item</div>
     </div>
     <script>
-        function loadVideo(url) {
-            document.getElementById('player').src = url;
-        }
+        function loadVideo(url) { document.getElementById('player').src = url; }
         function updateCounter(index, total) {
             document.getElementById('counter').textContent = `${index} / ${total}`;
             document.title = `Routes Mod (${index}/${total})`;
             const backBtn = document.getElementById('backBtn');
             const nextBtn = document.getElementById('nextBtn');
-            nextBtn.disabled = index == total
-            backBtn.disabled = index == 1 ||index == 0
+            nextBtn.disabled = index == total;
+            backBtn.disabled = index == 1 || index == 0;
         }
-        
         function updateScale(scale) {
             document.getElementById('scaleDisplay').textContent = `Scale: ${scale.toFixed(1)}x`;
         }
-        
         function showNoVideos(show) {
             document.getElementById('noVideos').style.display = show ? 'block' : 'none';
             document.getElementById('player').style.display = show ? 'none' : 'block';
         }
-        
         function noScale() {
-            document.getElementById('downscale').disabled = true
-            document.getElementById('upscale').disabled = true
+            document.getElementById('downscale').disabled = true;
+            document.getElementById('upscale').disabled = true;
         }
-        
     </script>
 </body>
 </html>
@@ -141,7 +140,6 @@ def reload_video():
     try:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect(('localhost', 8080))
-
         message = ""
         client_socket.sendall(message.encode('utf-8'))
         data_recieved = client_socket.recv(1024)
@@ -164,13 +162,15 @@ def reload_video():
         if filtered_segments:
             play_segment(0)
         else:
-            raise Exception(f"No routes available with your item")
-
+            raise Exception("No routes available with your item")
 
     except Exception as e:
         if window:
             error_message = "Error: " + str(e).replace("'", "").replace('"', "")
-            window.evaluate_js(f"document.getElementById('noVideos').textContent = '{error_message}'; showNoVideos(true); updateCounter(0, 0); loadVideo('https://www.youtube.com')")
+            window.evaluate_js(
+                f"document.getElementById('noVideos').textContent = '{error_message}'; "
+                f"showNoVideos(true); updateCounter(0, 0); loadVideo('https://www.youtube.com')"
+            )
 
 def play_segment(index):
     global current_index
@@ -178,7 +178,7 @@ def play_segment(index):
     video_url = filtered_segments[index]["video"]
     video_id = extract_youtube_id(video_url)
     if video_id:
-        embed_url = f"https://www.youtube.com/embed/{video_id}?enablejsapi=1"
+        embed_url = f"https://www.youtube-nocookie.com/embed/{video_id}?enablejsapi=1&origin=http://127.0.0.1:8123"
         try:
             js = f"loadVideo('{embed_url}'); updateCounter({index+1}, {len(filtered_segments)}); showNoVideos(false);"
             window.evaluate_js(js)
@@ -202,7 +202,14 @@ def reload_window():
     reload_video()
     return "OK"
 
-threading.Thread(target=lambda: app.run(port=8123), daemon=True).start()
+@app.route("/")
+def index():
+    return Response(html_template, mimetype="text/html")
+
+def run_flask():
+    app.run(host="127.0.0.1", port=8123, debug=False, use_reloader=False)
+
+threading.Thread(target=run_flask, daemon=True).start()
 
 # ---------------------- PyWebView API ----------------------
 
@@ -252,14 +259,24 @@ else:
                     scale = 1.0
 
 screen_width, screen_height = get_screen_size()
-
+time.sleep(0.2)
 if overlay_mode:
     window = webview.create_window(
-        windowtitle, html=html_template, js_api=api,
-        height=0, width=0, resizable=False, frameless=True, on_top=False
+        windowtitle,
+        "http://127.0.0.1:8123/",
+        js_api=api,
+        height=0,
+        width=0,
+        resizable=False,
+        frameless=True,
+        on_top=False
     )
 else:
-    window = webview.create_window(windowtitle, html=html_template, js_api=api)
+    window = webview.create_window(
+        windowtitle,
+        "http://127.0.0.1:8123/",
+        js_api=api
+    )
 
 def on_loaded():
     time.sleep(0.5)
