@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 ## Build
 
-use build.bat to compile
+use build.bat to compile(assuming you have nuitka installed. if you dont make sure to)
 
 if you prefer to use pyinstaller
 
